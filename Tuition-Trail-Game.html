@@ -1,0 +1,830 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The Tuition Trail</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=DM+Mono:wght@500&display=swap">
+<style>
+/* Layout: one narrow column; a trail of stops on top, one decision per screen, then cost per year, payback, takeaways. One language at a time, picked on the first screen. */
+:root{
+  --bg:#EEF2F6; --panel:#FFFFFF; --ink:#16213D; --muted:#56637E; --line:#D3DAE5;
+  --navy:#23407A; --navy-soft:#E3EAF7; --accent:#E3A014; --accent-soft:#FCF1D8;
+  --good:#127A60; --good-soft:#DFF3EC; --bad:#B9402F; --bad-soft:#F9E3DF; --hs:#8E98AE; --under:#C08000;
+  --es:#0B7A72; --es-on-btn:#C9EFEA;
+  --f-display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body:"Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --f-num:"DM Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --r:14px;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0E1525; --panel:#172138; --ink:#E7ECF6; --muted:#9BA7C1; --line:#2A3655;
+  --navy:#8EAEF0; --navy-soft:#1F2D4D; --accent:#F2B640; --accent-soft:#3A2F14;
+  --good:#3CC39B; --good-soft:#14352D; --bad:#F07A6C; --bad-soft:#3E1F1C; --hs:#6F7B95; --under:#F2B640;
+  --es:#5FD0C4; --es-on-btn:#0F3B37; color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#0E1525; --panel:#172138; --ink:#E7ECF6; --muted:#9BA7C1; --line:#2A3655;
+  --navy:#8EAEF0; --navy-soft:#1F2D4D; --accent:#F2B640; --accent-soft:#3A2F14;
+  --good:#3CC39B; --good-soft:#14352D; --bad:#F07A6C; --bad-soft:#3E1F1C; --hs:#6F7B95; --under:#F2B640;
+  --es:#5FD0C4; --es-on-btn:#0F3B37; color-scheme:dark }
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.5;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:20px 48px}
+.wrap{max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0;line-height:1.15}
+h1{font-size:clamp(2rem,7vw,3rem);font-weight:800;letter-spacing:-.02em}
+h2{font-size:clamp(1.3rem,4.5vw,1.7rem);font-weight:800}
+h3{font-size:1.1rem;font-weight:600}
+p{margin:0}
+.muted{color:var(--muted)}
+.small{font-size:.9rem}
+.num{font-family:var(--f-num);font-variant-numeric:tabular-nums}
+.eyebrow{font-size:.75rem;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);font-weight:700}
+
+
+.top{display:flex;flex-direction:column;gap:6px}
+.ridge{width:100%;height:46px;display:block}
+.ridge path{fill:none;stroke:var(--navy);stroke-width:2}
+.ridge .sun{fill:var(--accent);stroke:none}
+
+.trail{display:flex;align-items:flex-start;overflow-x:auto;padding:4px 2px 2px;scrollbar-width:none}
+.stop{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:0;padding:0;color:var(--muted);font:inherit;cursor:default;min-width:58px;text-align:center}
+.stop .dot{width:26px;height:26px;border-radius:50%;border:2px solid var(--line);background:var(--panel);display:grid;place-items:center;font-family:var(--f-num);font-size:.75rem;color:var(--muted)}
+.stop small{font-size:.7rem;white-space:nowrap;line-height:1.2}
+.stop.done{cursor:pointer;color:var(--ink)}
+.stop.done .dot{background:var(--navy);border-color:var(--navy);color:var(--panel)}
+.stop.now .dot{border-color:var(--accent);background:var(--accent);color:#2A1C00}
+.stop.now{color:var(--ink);font-weight:700}
+.link{flex:1 1 12px;min-width:8px;height:0;border-top:2px dashed var(--line);margin-top:13px}
+.link.done{border-top-color:var(--navy)}
+
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:clamp(16px,4vw,26px);display:flex;flex-direction:column;gap:16px;min-width:0}
+.qhead{display:flex;flex-direction:column;gap:6px}
+.opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+.opts.tight{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.opt{text-align:left;font:inherit;color:var(--ink);background:var(--panel);border:2px solid var(--line);border-radius:12px;padding:12px 14px;cursor:pointer;display:flex;flex-direction:column;gap:4px;transition:border-color .15s, background .15s, transform .1s}
+.opt:hover{border-color:var(--navy)}
+.opt:active{transform:scale(.985)}
+.opt[aria-pressed="true"]{border-color:var(--navy);background:var(--navy-soft)}
+.opt b{font-size:1rem}
+.opt .sub{font-size:.86rem;color:var(--muted)}
+.opt .tag{font-family:var(--f-num);font-size:.84rem;color:var(--ink)}
+.opt:disabled{opacity:.45;cursor:not-allowed}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.spacer{flex:1}
+.btn{font:inherit;font-weight:700;border-radius:14px;padding:8px 18px;border:2px solid var(--navy);background:var(--navy);color:var(--panel);cursor:pointer;display:inline-flex;flex-direction:column;align-items:center;line-height:1.25}
+.btn.ghost{background:transparent;color:var(--navy)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+label.field{display:flex;flex-direction:column;gap:6px;font-weight:700;font-size:.95rem}
+input[type=text]{font:inherit;font-weight:400;padding:10px 12px;border:2px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);width:100%;max-width:320px}
+.note{background:var(--accent-soft);border-radius:10px;padding:10px 12px;font-size:.92rem}
+.note.blue{background:var(--navy-soft)}
+.note.red{background:var(--bad-soft)}
+.toggle{display:inline-flex;border:2px solid var(--line);border-radius:14px;padding:3px;gap:3px;flex-wrap:wrap}
+.toggle button{font:inherit;font-size:.9rem;border:0;border-radius:11px;padding:6px 12px;background:transparent;color:var(--muted);cursor:pointer;line-height:1.25}
+.toggle button[aria-pressed="true"]{background:var(--navy);color:var(--panel)}
+
+.rates{display:flex;flex-direction:column;gap:10px}
+.rate{display:grid;grid-template-columns:150px 1fr 44px;gap:10px;align-items:center;font-size:.9rem}
+.bar{height:10px;border-radius:6px;background:var(--line);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--navy);border-radius:6px}
+
+/* results */
+.yearcost{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px}
+@media (max-width:560px){.yearcost{grid-template-columns:1fr}}
+.ledger{display:flex;flex-direction:column}
+.ledger div{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:8px 0;border-bottom:1px solid var(--line);font-size:.95rem}
+.ledger div.total{border-bottom:0;font-weight:700;font-size:1.02rem}
+.ledger span:last-child{font-family:var(--f-num);font-variant-numeric:tabular-nums;white-space:nowrap}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}
+.tile{border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.tile .big{font-family:var(--f-num);font-size:clamp(1.2rem,4.6vw,1.55rem);font-variant-numeric:tabular-nums;line-height:1.15;overflow-wrap:anywhere}
+.tile .cap{font-size:.84rem;color:var(--muted)}
+.tile.good{background:var(--good-soft);border-color:transparent}
+.tile.bad{background:var(--bad-soft);border-color:transparent}
+.good-t{color:var(--good)} .bad-t{color:var(--bad)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-size:.82rem;border-radius:999px;padding:3px 10px;background:var(--navy-soft);color:var(--ink)}
+
+.takeaways{display:flex;flex-direction:column;gap:12px;margin:0;padding:0;list-style:none}
+.takeaways li{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:start;padding:14px;border-radius:12px;background:var(--bg)}
+.takeaways .amt{font-family:var(--f-num);font-variant-numeric:tabular-nums;font-size:1.15rem;font-weight:500;padding:4px 10px;border-radius:8px;background:var(--good-soft);color:var(--good);white-space:nowrap}
+.takeaways .amt.bad{background:var(--bad-soft);color:var(--bad)}
+.takeaways .amt.neutral{background:var(--navy-soft);color:var(--navy)}
+.takeaways p{font-size:1rem}
+@media (max-width:480px){.takeaways li{grid-template-columns:1fr}.takeaways .amt{justify-self:start}}
+
+.crowd{display:grid;grid-template-columns:minmax(0,200px) minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:560px){.crowd{grid-template-columns:1fr}}
+.dots{display:grid;grid-template-columns:repeat(10,1fr);gap:5px;max-width:200px}
+.dots i{aspect-ratio:1;border-radius:50%;display:block;max-width:100%}
+.d-field{background:var(--navy)} .d-under{background:var(--under)} .d-drop{background:var(--bad)}
+.outs{display:flex;flex-direction:column;gap:10px}
+.out{display:grid;grid-template-columns:14px 1fr;gap:10px;align-items:start;font-size:.95rem}
+.out .sw2{width:14px;height:14px;border-radius:50%;margin-top:4px}
+
+.chart{width:100%;height:auto;display:block}
+.chart text{fill:var(--muted);font-family:var(--f-num);font-size:11px}
+.chart .grid{stroke:var(--line);stroke-width:1}
+.chart .zero{stroke:var(--muted);stroke-width:1;stroke-dasharray:3 3}
+.chart path{fill:none;stroke-linejoin:round}
+.chart .l-field{stroke:var(--navy);stroke-width:3}
+.chart .l-friend{stroke:var(--under);stroke-width:2.5}
+.chart .l-skip{stroke:var(--hs);stroke-width:2.5;stroke-dasharray:6 5}
+.chart .gradline{stroke:var(--accent);stroke-width:1.5;stroke-dasharray:2 3}
+.chart .be{fill:var(--accent);stroke:var(--panel);stroke-width:2}
+.chart .belbl{fill:var(--ink);font-family:var(--f-body);font-size:12px;font-weight:700}
+.legend{display:flex;gap:8px 18px;flex-wrap:wrap;font-size:.88rem}
+.legend span{display:inline-flex;align-items:flex-start;gap:6px}
+.sw{width:18px;height:0;border-top:3px solid var(--navy);display:inline-block;margin-top:9px;flex:none}
+.sw.skip{border-top:3px dashed var(--hs)}
+.sw.friend{border-top-color:var(--under)}
+
+.knobs{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.knob{display:flex;flex-direction:column;gap:4px;font-size:.9rem}
+.knob .kv{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.knob output{font-family:var(--f-num)}
+input[type=range]{width:100%;accent-color:var(--navy)}
+.tablewrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.9rem;min-width:680px}
+th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:.74rem;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+td.n{font-family:var(--f-num);font-variant-numeric:tabular-nums;white-space:nowrap}
+.best td:first-child{font-weight:700}
+.foot{font-size:.8rem;color:var(--muted);display:flex;flex-direction:column;gap:6px}
+.foot a{color:var(--navy)}
+.foot ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="top" id="top"></header>
+  <nav class="trail" id="trail" aria-label="Your progress"></nav>
+  <main id="app"></main>
+  <section class="panel" id="compare" hidden></section>
+  <footer class="foot" id="foot"></footer>
+</div>
+
+<script>
+/* ================= BILINGUAL HELPER ================= */
+let LANG = "en"; try{ LANG = localStorage.getItem("tt-lang")==="es" ? "es" : "en" }catch(e){}
+const L = (en, sp) => LANG==="es" ? sp : en;
+
+/* ================= DATA ================= */
+// Tuition & mandatory fees per year. living = housing + food per year.
+const SCHOOLS = {
+  usu:  {name:"Utah State University", short:"Utah State", city:"Logan, Utah", st:"UT", type:"public", res:8347,  non:25226, living:12000, g4:32, g6:57},
+  uofu: {name:"University of Utah", short:"U of U", city:"Salt Lake City, Utah", st:"UT", type:"public", res:10480, non:32900, living:19200, g4:35, g6:65},
+  uvu:  {name:"Utah Valley University", short:"UVU", city:"Orem, Utah", st:"UT", type:"public", res:6674,  non:18992, living:12000, g4:20, g6:40},
+  byu:  {name:"BYU (Provo)", short:"BYU", city:"Provo, Utah", st:"UT", type:"church", mem:6888, nonmem:13776, living:12000, g4:21, g6:80},
+  byui: {name:"BYU–Idaho", short:"BYU–Idaho", city:"Rexburg, Idaho", st:"ID", type:"church", mem:5088, nonmem:10176, living:8000, g4:25, g6:55},
+  uconn:{name:"University of Connecticut", short:"UConn", city:"Storrs, Connecticut", st:"CT", type:"public", res:21334, non:44002, living:14800, g4:74, g6:83},
+  unc:  {name:"UNC–Chapel Hill", short:"UNC", city:"Chapel Hill, North Carolina", st:"NC", type:"public", res:8817, non:44950, living:13800, g4:85, g6:91},
+  ncc:  {name:"Norwalk Community College", short:"Norwalk CC", city:"Norwalk, Connecticut (now CT State Norwalk)", st:"CT", type:"cc", res:5218, non:15476, living:6000, g3:19, tr3:13,
+         partner:"uconn", transferFinish:.79, admit:{a:1,b:1,c:1,d:.6,f:.6}, noGuarantee:["d","f"],
+         transferNote:["Do two low-cost years at Norwalk, then finish a 4-year degree at UConn. UConn saves a spot for community college students who apply early and finish with a 3.0 GPA.","Estudia dos años económicos en Norwalk y termina la carrera de 4 años en UConn. UConn guarda un lugar para estudiantes de community college que aplican temprano y terminan con un promedio de 3.0."],
+         guaranteeNote:["Under a 3.0, UConn does not guarantee you a spot.","Con menos de 3.0, UConn no te garantiza un lugar."],
+         rateNote:["CT State Community College, all campuses, students who started in 2020. Many study part-time while working.","CT State Community College, todos los campus, estudiantes que empezaron en 2020. Muchos estudian medio tiempo mientras trabajan."]},
+  cpcc: {name:"Central Piedmont Community College", short:"Central Piedmont", city:"Charlotte, North Carolina", st:"NC", type:"cc", res:2792, non:8936, living:6000, g3:31, tr3:26,
+         partner:"unc", transferFinish:.79, admit:{a:1,b:1,c:.6,d:.3,f:.1}, noGuarantee:["c","d","f"],
+         transferNote:["Do two low-cost years at Central Piedmont, then finish a 4-year degree at UNC. UNC's C-STEP program guarantees a spot to students with financial need who apply early and finish with a 3.2 GPA. With a 2.0 GPA and a 2-year transfer degree, North Carolina guarantees you a spot at some UNC System school, but not Chapel Hill.","Estudia dos años económicos en Central Piedmont y termina la carrera de 4 años en UNC. El programa C-STEP de UNC garantiza un lugar a estudiantes con necesidad económica que aplican temprano y terminan con un promedio de 3.2. Con un promedio de 2.0 y un título de transferencia de 2 años, Carolina del Norte te garantiza un lugar en alguna universidad del sistema UNC, pero no en Chapel Hill."],
+         guaranteeNote:["Under a 3.2, UNC–Chapel Hill does not guarantee you a spot.","Con menos de 3.2, UNC–Chapel Hill no te garantiza un lugar."],
+         rateNote:["Full-time Central Piedmont students who started in fall 2021.","Estudiantes de tiempo completo de Central Piedmont que empezaron en el otoño de 2021."]}
+};
+const STATE_NAME = {UT:"Utah", ID:"Idaho", CT:"Connecticut", NC:"North Carolina"};
+const STATE_ES = {UT:"Utah", ID:"Idaho", CT:"Connecticut", NC:"Carolina del Norte"};
+const MAJORS = {
+  cs:{name:"Computer Science", es:"Ciencias de la Computación", early:87000, mid:120000},
+  ce:{name:"Computer Engineering", es:"Ingeniería en Computación", early:90000, mid:131000},
+  me:{name:"Mechanical Engineering", es:"Ingeniería Mecánica", early:78000, mid:118000},
+  nurse:{name:"Nursing", es:"Enfermería", early:70000, mid:90000},
+  acct:{name:"Accounting", es:"Contabilidad", early:64000, mid:95000},
+  fin:{name:"Finance", es:"Finanzas", early:72000, mid:110000},
+  econ:{name:"Economics", es:"Economía", early:72000, mid:115000},
+  bus:{name:"Business Management", es:"Administración de Empresas", early:57000, mid:90000},
+  comm:{name:"Communications", es:"Comunicación", early:50000, mid:80000},
+  bio:{name:"Biology", es:"Biología", early:46000, mid:80000},
+  psych:{name:"Psychology", es:"Psicología", early:45000, mid:70000},
+  edu:{name:"Elementary Education", es:"Educación Primaria", early:44000, mid:55000},
+  art:{name:"Fine Arts", es:"Bellas Artes", early:42000, mid:65000}
+};
+const ASSOC = {name:"Associate degree", es:"Título de asociado (2 años)", early:38000, mid:60000};
+// Jobs without college. BLS May 2025: p10 = lowest 10% earn less than this, med = median (typical) pay. Restaurant pay includes tips.
+// kind: service = trained on the job; school = short paid course first; appr = paid apprenticeship.
+const CAREERS = {
+  wait:  {name:"Waitstaff", es:"Mesero/a", p10:18100, med:35230, cost:0, kind:"service",
+          how:["Trained on the job in a few weeks. Pay includes tips.","Te entrenan en el trabajo en pocas semanas. El sueldo incluye propinas."]},
+  bar:   {name:"Bartender", es:"Bartender (cantinero/a)", p10:20110, med:34340, cost:0, kind:"service",
+          how:["Trained on the job in a few weeks. Some states require you to be 21.","Te entrenan en el trabajo en pocas semanas. Algunos estados piden tener 21 años."]},
+  retail:{name:"Retail sales", es:"Vendedor/a de tienda", p10:27210, med:35420, cost:0, kind:"service",
+          how:["Trained on the job in a few weeks.","Te entrenan en el trabajo en pocas semanas."]},
+  truck: {name:"Truck driver", es:"Camionero/a", p10:40140, med:58640, cost:5000, kind:"school",
+          how:["3–6 months of truck driving school for a CDL license. You must be 21 to drive between states.","3 a 6 meses de escuela de manejo para la licencia CDL. Debes tener 21 años para manejar entre estados."]},
+  weld:  {name:"Welder", es:"Soldador/a", p10:39240, med:53750, cost:2800, kind:"school",
+          how:["A few months of welding classes, then training on the job.","Unos meses de clases de soldadura y luego entrenamiento en el trabajo."]},
+  hvac:  {name:"HVAC technician", es:"Técnico/a de aire acondicionado y calefacción", p10:40050, med:61010, cost:2800, kind:"school",
+          how:["A 6-month to 2-year certificate, or a paid apprenticeship.","Un certificado de 6 meses a 2 años, o un aprendizaje pagado."]},
+  carp:  {name:"Carpenter", es:"Carpintero/a", p10:40410, med:60580, cost:0, kind:"appr",
+          how:["Paid apprenticeship: you earn money while you learn.","Aprendizaje pagado: ganas dinero mientras aprendes."]},
+  plumb: {name:"Plumber", es:"Plomero/a", p10:44150, med:63800, cost:0, kind:"appr",
+          how:["4–5 year paid apprenticeship.","Aprendizaje pagado de 4 a 5 años."]},
+  elec:  {name:"Electrician", es:"Electricista", p10:42640, med:63190, cost:0, kind:"appr",
+          how:["4–5 year paid apprenticeship.","Aprendizaje pagado de 4 a 5 años."]},
+  line:  {name:"Power lineworker", es:"Liniero/a eléctrico/a", p10:51470, med:95320, cost:0, kind:"appr",
+          how:["Paid apprenticeship of up to 3 years. Hard outdoor work on power lines.","Aprendizaje pagado de hasta 3 años. Trabajo duro al aire libre en líneas eléctricas."]}
+};
+const GPA = {
+  a:{label:"3.8 or higher", les:"3.8 o más", sub:"Mostly A's", ssub:"Casi todas A (excelente)", adj4:14, adjcc:40, under:.25},
+  b:{label:"3.4 – 3.79", sub:"A's and B's", ssub:"A y B (muy bien)", adj4:5,  adjcc:25, under:.35},
+  c:{label:"3.0 – 3.39", sub:"Mostly B's", ssub:"Casi todas B (bien)", adj4:-8, adjcc:8,  under:.45},
+  d:{label:"2.0 – 2.99", sub:"B's and C's", ssub:"B y C (regular)", adj4:-22, adjcc:-5, under:.55},
+  f:{label:"Under 2.0", les:"Menos de 2.0", sub:"C's, D's and F's", ssub:"C, D y F (malas notas)", adj4:-40, adjcc:-18, under:.70}
+};
+const gl = id => L(GPA[id].label, GPA[id].les || GPA[id].label);
+const BOOKS = 1000, RAISE = 1.03;
+const SKIP0 = 32000, SKIP35 = 50000;
+const TABLES = 35230;
+const FED_LIMIT = 31000;
+
+/* ================= STATE ================= */
+const fresh = () => ({name:"", home:null, where:null, school:null, member:true, plan:"transfer", gap:null, gpa:null, years:null, major:null, career:null,
+  help:0, partTime:0, rate:6.52, gapPay:30000});
+let S = fresh(); let step = "start";
+let saved = []; try{ saved = JSON.parse(localStorage.getItem("tt-saved5")||"[]") }catch(e){ saved = [] }
+
+const $ = s => document.querySelector(s);
+const money = v => (v<0?"−":"") + "$" + Math.round(Math.abs(v)).toLocaleString("en-US");
+const k = v => (v<0?"−":"") + "$" + (Math.abs(v)>=1e6 ? (Math.abs(v)/1e6).toFixed(2)+"M" : Math.round(Math.abs(v)/1000)+"k");
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const clamp = (v,lo,hi) => Math.max(lo, Math.min(hi, v));
+const yrs = (n, en=true) => en ? `${n} ${n===1?"year":"years"}` : `${n} ${n===1?"año":"años"}`;
+
+const inStateSchools = home => Object.keys(SCHOOLS).filter(id => SCHOOLS[id].st===home);
+function schoolList(){ const ins = inStateSchools(S.home); return S.where==="in" ? ins : Object.keys(SCHOOLS).filter(id => !ins.includes(id)) }
+const isOut = () => S.where==="out";
+const isCC = st => !!st.school && SCHOOLS[st.school].type==="cc";
+const isAssoc = st => isCC(st) && st.plan==="assoc";
+const isTransfer = st => isCC(st) && st.plan==="transfer";
+const degreeOf = st => isAssoc(st) ? ASSOC : MAJORS[st.major];
+const pathName = st => { const s = SCHOOLS[st.school]; return isTransfer(st) ? `${s.short} → ${SCHOOLS[s.partner].short}` : s.short };
+function steps(){
+  if(S.where==="skip") return ["start","where","career","results"];
+  const a = ["start","where","school"]; if(isOut()) a.push("gap"); a.push("grades"); if(!isAssoc(S)) a.push("major"); a.push("results"); return a;
+}
+const LABELS = {start:["You","Tú"], where:["Path","Camino"], school:["School","Escuela"], gap:["Wait?","¿Esperar?"], grades:["Grades","Notas"], major:["Major","Carrera"], career:["Job","Trabajo"], results:["Results","Resultados"]};
+
+/* ================= MODEL ================= */
+const skipPay = a => a<=35 ? SKIP0 + (SKIP35-SKIP0)*(a-18)/17 : SKIP35*Math.pow(1.01, a-35);
+function skipSeries(){ const v=[]; let c=0; for(let a=18;a<=40;a++){ c+=skipPay(a); v.push(c) } return v }
+
+// Job without college: starting pay at 18 (apprentices start near half of full pay), typical (median) pay by 35, then +1% a year.
+const careerStart = c => c.kind==="appr" ? Math.min(c.p10, Math.round(c.med/2/10)*10) : c.p10;
+const careerPay = (c, a) => { const s = careerStart(c); return a<=35 ? s + (c.med-s)*(a-18)/17 : c.med*Math.pow(1.01, a-35) };
+function careerSeries(c){ const v=[]; let t=-c.cost; for(let a=18;a<=40;a++){ t+=careerPay(c,a); v.push(t) } return v }
+
+function finishOdds(st){
+  const g = GPA[st.gpa], sc = SCHOOLS[st.school];
+  if(sc.type==="cc"){
+    const cc = clamp(sc.g3 + sc.tr3 + g.adjcc, 3, 95);
+    if(st.plan==="assoc") return cc/100;
+    return cc/100 * sc.transferFinish * sc.admit[st.gpa];
+  }
+  return clamp(sc.g6 + g.adj4, 3, 97)/100;
+}
+
+function yearInfo(st, i, gap){
+  const home = SCHOOLS[st.school];
+  const sc = (isTransfer(st) && i>=2) ? SCHOOLS[home.partner] : home, out = st.where==="out";
+  const f = Math.pow(RAISE, i+gap);
+  let base;
+  if(sc.type==="church") base = st.member ? sc.mem : sc.nonmem;
+  else base = (!out || gap) ? sc.res : sc.non;
+  return {sc, tuition:base*f, living:sc.living*f, books:BOOKS*f};
+}
+
+function attend(st, n){
+  const gap = st.gap==="gap" ? 1 : 0, r = st.rate/100;
+  const gapNet = gap ? Math.max(0, st.gapPay*0.9 - SCHOOLS[st.school].living) : 0;
+  let tuition=0, living=0, books=0, borrowed=0, accrued=0; const yearCost=[], rows=[];
+  for(let i=0;i<n;i++){
+    const y = yearInfo(st, i, gap);
+    tuition+=y.tuition; living+=y.living; books+=y.books;
+    const full = y.tuition + y.living + y.books;
+    const have = st.help + st.partTime + (i===0 ? gapNet : 0);
+    const b = Math.max(0, full - have);
+    borrowed += b; accrued += b * r * (n - i - 0.5);
+    yearCost.push(y.tuition + y.books);
+    rows.push({school:y.sc.short, tuition:y.tuition, living:y.living, books:y.books, total:full, loan:b});
+  }
+  const balance = borrowed + accrued, mr = r/12;
+  const pay = balance ? balance*mr/(1-Math.pow(1+mr,-120)) : 0;
+  const interest = accrued + (pay*120 - balance);
+  return {gap, gapNet, tuition, living, books, cost: tuition+living+books, rows,
+    borrowed, accrued, balance, pay, interest, yearCost, family:st.help*n, job:st.partTime*n, n};
+}
+
+function series(st, A, track){
+  const deg = degreeOf(st);
+  const salary = t => t<=15 ? deg.early + (deg.mid-deg.early)*t/15 : deg.mid*Math.pow(1.01, t-15);
+  const exit = 18 + A.gap + A.n, v=[]; let c=0;
+  for(let a=18;a<=40;a++){
+    if(A.gap && a===18) c += st.gapPay;
+    else if(a < exit) c += st.partTime - A.yearCost[a-18-A.gap];
+    else {
+      const t = a-exit;
+      c += track==="field" ? salary(t) : track==="under" ? (t<5 ? TABLES*Math.pow(1.02,t) : 0.8*salary(t)) : skipPay(a)*1.05;
+      if(t<10) c -= A.interest/10;
+    }
+    v.push(c);
+  }
+  return {v, exit, at35: salary(35-exit)};
+}
+
+function simulate(st){
+  const sk = skipSeries();
+  const n = st.years, dropN = isTransfer(st) ? 1 : Math.max(1, Math.floor(n/2));
+  const A = attend(st, n), D = attend(st, dropN);
+  const F = series(st, A, "field"), U = series(st, A, "under"), X = series(st, D, "drop");
+  const P = finishOdds(st), u = GPA[st.gpa].under;
+  const pF = P*(1-u), pU = P*u, pD = 1-P;
+  const end = s => s.v[22] - sk[22];
+  let breakEven=null; for(let i=0;i<23;i++){ if(18+i>=F.exit && F.v[i]>=sk[i]){ breakEven=18+i; break } }
+  const sc=SCHOOLS[st.school]; let rate;
+  if(sc.type==="church") rate = st.member ? ["church-member price","precio para miembros de la Iglesia"] : ["non-member price","precio para no miembros"];
+  else rate = st.where!=="out" ? ["in-state price","precio para residentes"] : st.gap==="gap" ? ["in-state price (after 1 year of work)","precio de residente (después de 1 año de trabajo)"] : ["out-of-state price","precio para no residentes"];
+  return {sk, A, D, F, X, P, u, pF, pU, pD, ends:{field:end(F), under:end(U), drop:end(X)}, breakEven, rate, gradAge:F.exit, dropAge:X.exit};
+}
+
+// The college friend a no-college player is compared with: a Business degree in 4 years at a school from their home state.
+function friendPlan(){
+  const pick = {NC:["unc","in"], CT:["uconn","in"], UT:["usu","in"], ID:["byui","in"], OTHER:["usu","out"]}[S.home] || ["usu","out"];
+  return {...fresh(), home:S.home, where:pick[1], school:pick[0], gap:pick[1]==="out"?"now":null, gpa:"b", years:4, major:"bus", member:true};
+}
+
+/* ================= TRAIL ================= */
+function renderTrail(){
+  const list = steps(), cur = list.indexOf(step);
+  $("#trail").innerHTML = list.map((s,i) => {
+    const cls = i<cur ? "done" : i===cur ? "now" : "";
+    const stop = `<button class="stop ${cls}" ${i<cur?`data-go="${s}"`:"disabled"} aria-label="${LABELS[s][0]}"><span class="dot">${i+1}</span><small>${L(LABELS[s][0],LABELS[s][1])}</small></button>`;
+    return (i ? `<span class="link ${i<=cur?"done":""}"></span>` : "") + stop;
+  }).join("");
+  const now = document.querySelector(".stop.now"), tr = $("#trail");
+  if(now && tr) tr.scrollLeft = Math.max(0, now.offsetLeft - tr.offsetLeft - tr.clientWidth/2 + now.offsetWidth/2);
+}
+
+/* ================= VIEWS ================= */
+// opt(attr, value, current, [en,es] title, [en,es] sub, tag, disabled)
+const opt = (attr, val, cur, title, sub, tag, disabled) =>
+  `<button class="opt" data-${attr}="${val}" aria-pressed="${cur===val}" ${disabled?"disabled":""}><b>${title[1]?L(title[0],title[1]):title[0]}</b>${sub?`<span class="sub">${L(sub[0],sub[1])}</span>`:""}${tag?`<span class="tag">${tag[1]!==undefined?L(tag[0],tag[1]):tag[0]}</span>`:""}</button>`;
+const BACK = `<button class="btn ghost" data-back>${L("Back","Atrás")}</button>`;
+const back = () => `<div class="row">${BACK}</div>`;
+const navRow = ok => `<div class="row">${BACK}<span class="spacer"></span><button class="btn" data-next ${ok?"":"disabled"}>${L("Next","Siguiente")}</button></div>`;
+const stopLabel = (n, en, sp) => `<span class="eyebrow">${L(`Stop ${n} · ${en}`,`Paso ${n} · ${sp}`)}</span>`;
+
+const VIEWS = {
+start(){
+  return `<section class="panel">
+    <div class="qhead">${stopLabel(1,"Who's playing","Quién juega")}
+    <h2>${L("Who's playing, and where do you live now?","¿Quién juega y dónde vives ahora?")}</h2>
+    <p class="muted">${L("Where you live decides which schools count as “in-state.” Public universities charge students from other states two to five times more.","Donde vives decide qué universidades te cobran el precio de “residente del estado”. Las universidades públicas cobran de dos a cinco veces más a estudiantes de otros estados.")}</p></div>
+    <div class="qhead"><h3>Choose your language · Elige tu idioma</h3></div>
+    <div class="opts tight">${opt("lang","en",LANG,["English"])}${opt("lang","es",LANG,["Español"])}</div>
+    <label class="field" for="pname">${L("Your name","Tu nombre")}<input type="text" id="pname" maxlength="24" placeholder="${L("e.g. Jordan","p. ej. Jordan")}" value="${esc(S.name)}"></label>
+    <div class="opts tight">
+      ${opt("home","NC",S.home,["North Carolina","Carolina del Norte"],["Home of UNC and Central Piedmont","Aquí están UNC y Central Piedmont"])}
+      ${opt("home","UT",S.home,["Utah"],["Home of 4 of the schools","Aquí están 4 de las escuelas"])}
+      ${opt("home","CT",S.home,["Connecticut"],["Home of UConn and Norwalk CC","Aquí están UConn y Norwalk CC"])}
+      ${opt("home","ID",S.home,["Idaho"],["Home of BYU–Idaho","Aquí está BYU–Idaho"])}
+      ${opt("home","OTHER",S.home,["Another state","Otro estado"],["None of the schools are near you","Ninguna escuela está cerca de ti"])}
+    </div>
+    <div class="row"><button class="btn" id="go1" ${S.home?"":"disabled"}>${L("Start","Empezar")}</button><span class="spacer"></span><button class="btn ghost" data-example>${L("See an example","Ver un ejemplo")}</button></div>
+  </section>`;
+},
+where(){
+  const ins = inStateSchools(S.home), names = ins.map(id=>SCHOOLS[id].short).join(", ");
+  return `<section class="panel">
+    <div class="qhead">${stopLabel(2,"Pick a path","Elige un camino")}
+    <h2>${L("College in your state, college in another state, or go straight to work?","¿Universidad en tu estado, en otro estado, o trabajar directamente?")}</h2></div>
+    <div class="opts">
+      ${opt("where","in",S.where,["Stay in my state","Quedarme en mi estado"], ins.length ? [`Choose from ${names}`,`Elige entre ${names}`] : ["None of the schools are in your state","Ninguna escuela está en tu estado"], ins.length?["Lower price at public schools","Precio más bajo en escuelas públicas"]:null, !ins.length)}
+      ${opt("where","out",S.where,["Go to another state","Ir a otro estado"],["Move somewhere new","Mudarte a otro lugar"],["Higher price at public schools","Precio más alto en escuelas públicas"])}
+      ${opt("where","skip",S.where,["Skip college","No ir a la universidad"],["Start working at 18 in a job or a trade","Empezar a trabajar a los 18 en un empleo o un oficio"],["Pick from 10 jobs","Elige entre 10 trabajos"])}
+    </div>
+    ${S.home==="ID" ? `<p class="note blue">${L("BYU–Idaho is a private church school. It charges the same no matter where you live. The price depends on church membership.","BYU–Idaho es una escuela privada de la Iglesia. Cobra lo mismo sin importar dónde vivas. El precio depende de si eres miembro de la Iglesia.")}</p>`:""}
+    ${back()}
+  </section>`;
+},
+career(){
+  return `<section class="panel">
+    <div class="qhead">${stopLabel(3,"Pick a job","Elige un trabajo")}
+    <h2>${L("Which job will you do instead of college?","¿Qué trabajo harás en vez de ir a la universidad?")}</h2>
+    <p class="muted">${L("Pay per year when you start at 18 → typical pay by age 35. Restaurant pay includes tips.","Sueldo por año al empezar a los 18 → sueldo típico a los 35 años. El sueldo de restaurante incluye propinas.")}</p></div>
+    <div class="opts">${Object.entries(CAREERS).map(([id,c]) => opt("career",id,S.career,[c.name,c.es],c.how,[`${k(careerStart(c))} → ${k(c.med)}`])).join("")}</div>
+    ${back()}
+  </section>`;
+},
+school(){
+  const ids = schoolList();
+  const price = id => { const s=SCHOOLS[id];
+    if(s.type==="church") return [`${money(s.mem)} member · ${money(s.nonmem)} non-member per year`, `${money(s.mem)} miembro · ${money(s.nonmem)} no miembro por año`];
+    return isOut() ? [`${money(s.non)} per year (out-of-state)`,`${money(s.non)} por año (no residente)`] : [`${money(s.res)} per year (in-state)`,`${money(s.res)} por año (residente)`]; };
+  const sc = S.school && SCHOOLS[S.school];
+  return `<section class="panel">
+    <div class="qhead">${stopLabel(3,"Pick a school","Elige una escuela")}
+    <h2>${L("Which school?","¿Qué escuela?")}</h2>
+    <p class="muted">${L("Prices are one year of tuition (the cost of classes). Housing and food cost extra.","Los precios son un año de matrícula (el costo de las clases). La vivienda y la comida cuestan aparte.")}</p></div>
+    <div class="opts">${ids.map(id => opt("school",id,S.school,[SCHOOLS[id].name],[SCHOOLS[id].city,SCHOOLS[id].city],price(id))).join("")}</div>
+    ${sc && sc.type==="church" ? `<div class="row"><span>${L("Are you a member of the Church of Jesus Christ of Latter-day Saints?","¿Eres miembro de la Iglesia de Jesucristo de los Santos de los Últimos Días?")}</span>
+      <div class="toggle" role="group" aria-label="Church membership"><button data-member="1" aria-pressed="${S.member}">${L("Yes","Sí")}</button><button data-member="0" aria-pressed="${!S.member}">${L("No","No")}</button></div></div>
+      <p class="note blue">${L("BYU schools don't care which state you live in. Church members pay about half, because the Church pays part of the cost.","A las escuelas BYU no les importa en qué estado vives. Los miembros de la Iglesia pagan más o menos la mitad, porque la Iglesia paga parte del costo.")}</p>` : ""}
+    ${S.school==="unc" && isOut() ? `<p class="note">${L("UNC limits out-of-state students to about 18% of new freshmen, so getting in from another state is very hard.","UNC limita a los estudiantes de otros estados a cerca del 18% de los nuevos estudiantes de primer año, así que entrar desde otro estado es muy difícil.")}</p>` : ""}
+    ${sc && sc.type==="cc" ? `<div class="row"><span>${L(`Your plan at ${sc.short}`,`Tu plan en ${sc.short}`)}</span>
+      <div class="toggle" role="group" aria-label="Community college plan"><button data-plan="transfer" aria-pressed="${S.plan==="transfer"}">${L(`2 years, then ${SCHOOLS[sc.partner].short}`,`2 años y luego ${SCHOOLS[sc.partner].short}`)}</button><button data-plan="assoc" aria-pressed="${S.plan==="assoc"}">${L("2-year degree only","Solo el título de 2 años")}</button></div></div>
+      <p class="note blue">${S.plan==="transfer"
+        ? L(sc.transferNote[0], sc.transferNote[1])
+        : L("Earn a 2-year “associate” degree and start working. It pays more than high school only, but less than a 4-year degree for most jobs.","Obtén un título de 2 años (“associate”) y empieza a trabajar. Paga más que solo la secundaria, pero menos que un título de 4 años en la mayoría de los trabajos.")}</p>` : ""}
+    ${navRow(!!S.school)}
+  </section>`;
+},
+gap(){
+  const s = SCHOOLS[S.school], st = STATE_NAME[s.st], ste = STATE_ES[s.st];
+  const save = s.type==="church" ? 0 : (s.non - s.res);
+  const rule = {
+    UT:["Real rules are stricter. Utah usually wants 12 straight months living there, not studying full-time, plus proof like a Utah driver's license. Ask the school before counting on it.","Las reglas reales son más estrictas. Utah normalmente pide 12 meses seguidos viviendo allí, sin estudiar tiempo completo, y pruebas como una licencia de manejo de Utah. Pregunta a la escuela antes de contar con esto."],
+    CT:["Real rules are stricter. Connecticut usually looks at where your parents live if they still support you. Ask the school before counting on it.","Las reglas reales son más estrictas. Connecticut normalmente mira dónde viven tus padres si todavía te mantienen. Pregunta a la escuela antes de contar con esto."],
+    NC:["Real rules are stricter. North Carolina decides residency through a state office. You need 12 months living there for a reason other than school, and if your parents still support you, it usually looks at where they live. Ask before counting on it.","Las reglas reales son más estrictas. Carolina del Norte decide la residencia en una oficina del estado. Necesitas 12 meses viviendo allí por una razón que no sea estudiar, y si tus padres todavía te mantienen, normalmente mira dónde viven ellos. Pregunta antes de contar con esto."]
+  }[s.st];
+  return `<section class="panel">
+    <div class="qhead">${stopLabel(4,"Go now or wait a year","Ir ahora o esperar un año")}
+    <h2>${L(`Start right away, or live and work in ${st} for one year first?`,`¿Empezar ya, o vivir y trabajar un año en ${ste} primero?`)}</h2>
+    <p class="muted">${L(`After 12 months living and working in ${st}, you may count as a resident and pay the lower in-state price.`,`Después de 12 meses viviendo y trabajando en ${ste}, podrías contar como residente y pagar el precio más bajo.`)}</p></div>
+    <div class="opts">
+      ${opt("gap","now",S.gap,["Go right away","Ir de inmediato"], s.type!=="church" ? ["Pay the out-of-state price every year","Pagar el precio de no residente cada año"] : ["Start at 18","Empezar a los 18"], s.type!=="church" ? [`${money(s.non)} per year`,`${money(s.non)} por año`] : null)}
+      ${opt("gap","gap",S.gap,["Work one year first","Trabajar un año primero"], s.type!=="church" ? ["Earn money, then pay the in-state price","Ganar dinero y luego pagar el precio de residente"] : ["Earn and save money, start at 19","Ganar y ahorrar dinero, empezar a los 19"], s.type!=="church" ? [`Saves about ${money(save)} per year`,`Ahorras unos ${money(save)} por año`] : ["Price stays the same","El precio no cambia"])}
+    </div>
+    ${s.type==="church" ? `<p class="note">${L(`At ${s.short}, waiting does not lower the price. You only gain the money you save from working.`,`En ${s.short}, esperar no baja el precio. Solo ganas el dinero que ahorras trabajando.`)}</p>` :
+      rule ? `<p class="note">${L(rule[0], rule[1])}</p>` : ""}
+    ${back()}
+  </section>`;
+},
+grades(){
+  const s = SCHOOLS[S.school], cc = s.type==="cc", yrsOpts = isAssoc(S) ? [2,3] : [4,5,6];
+  const rates = cc
+    ? `<div class="rate"><span>${L("Graduate in 3 years","Se gradúan en 3 años")}</span><span class="bar"><i style="width:${s.g3}%"></i></span><span class="num">${s.g3}%</span></div>
+       <div class="rate"><span>${L("Transfer in 3 years","Se transfieren en 3 años")}</span><span class="bar"><i style="width:${s.tr3}%"></i></span><span class="num">${s.tr3}%</span></div>`
+    : `<div class="rate"><span>${L("Finish in 4 years","Terminan en 4 años")}</span><span class="bar"><i style="width:${s.g4}%"></i></span><span class="num">${s.g4}%</span></div>
+       <div class="rate"><span>${L("Finish in 6 years","Terminan en 6 años")}</span><span class="bar"><i style="width:${s.g6}%"></i></span><span class="num">${s.g6}%</span></div>`;
+  const P = S.gpa ? Math.round(finishOdds(S)*100) : null;
+  return `<section class="panel">
+    <div class="qhead">${stopLabel(steps().indexOf("grades")+1,"Grades and time","Notas y tiempo")}
+    <h2>${L("What grades will you get, and how long will you take?","¿Qué notas sacarás y cuánto tiempo tardarás?")}</h2>
+    <p class="muted">${L("GPA is your grade average. 4.0 means all A's. Better grades mean a better chance of finishing and of finding a job in your field.","El GPA es tu promedio de notas. 4.0 significa todas A. Mejores notas te dan más probabilidad de terminar y de encontrar trabajo en tu carrera.")}</p></div>
+    <h3>${L(`How ${esc(s.short)} students do`,`Cómo les va a los estudiantes de ${esc(s.short)}`)}</h3>
+    <div class="rates">${rates}</div>
+    <p class="muted small">${cc
+      ? L(s.rateNote[0], s.rateNote[1])
+      : L(`Out of every 100 ${esc(s.short)} students, this many finish in that time.`,`De cada 100 estudiantes de ${esc(s.short)}, esta cantidad termina en ese tiempo.`)}${S.school==="byu"||S.school==="byui" ? " "+L("Many BYU students take 2 years off for a church mission.","Muchos estudiantes de BYU toman 2 años libres para una misión de la Iglesia.") : ""}</p>
+    <h3>${L("Your average grades (GPA)","Tu promedio de notas (GPA)")}</h3>
+    <div class="opts tight">${Object.entries(GPA).map(([id,g]) => opt("gpa",id,S.gpa,[gl(id)],[g.sub,g.ssub])).join("")}</div>
+    ${P!==null ? `<p class="note ${P<40?"red":"blue"}">${L(`With these grades, about <b>${P} out of 100</b> students like you finish ${isAssoc(S)?"the 2-year degree":"a 4-year degree"} on this path.`,`Con estas notas, unos <b>${P} de cada 100</b> estudiantes como tú terminan ${isAssoc(S)?"el título de 2 años":"una carrera de 4 años"} en este camino.`)}${isTransfer(S) && s.noGuarantee.includes(S.gpa) ? " "+L(s.guaranteeNote[0], s.guaranteeNote[1]) : ""}</p>` : ""}
+    <h3>${L("Years in school","Años en la escuela")}</h3>
+    <div class="opts tight">${yrsOpts.map((y,i) => opt("years",y,S.years,[`${y} years`,`${y} años`], i===0?["On time","A tiempo"]:i===1?["One extra year","Un año extra"]:["Two extra years","Dos años extra"])).join("")}</div>
+    ${navRow(S.gpa && S.years)}
+  </section>`;
+},
+major(){
+  return `<section class="panel">
+    <div class="qhead">${stopLabel(steps().indexOf("major")+1,"Your major","Tu carrera")}
+    <h2>${L("What will you study?","¿Qué vas a estudiar?")}</h2>
+    <p class="muted">${L("Typical yearly pay in your 20s → in your late 30s, if you get a job in your field.","Sueldo típico por año a los 20 y tantos → a finales de los 30, si consigues trabajo en tu carrera.")}</p></div>
+    <div class="opts tight">${Object.entries(MAJORS).map(([id,m]) => opt("major",id,S.major,[m.name,m.es],null,[`${k(m.early)} → ${k(m.mid)}`])).join("")}</div>
+    ${back()}
+  </section>`;
+},
+results(){ return S.where==="skip" ? skipResults() : collegeResults() }
+};
+
+function knob(id,label,min,max,stepv,val,fmt){
+  return `<label class="knob" for="k-${id}"><span class="kv"><span>${label}</span><output id="o-${id}">${fmt(val)}</output></span>
+  <input type="range" id="k-${id}" data-knob="${id}" min="${min}" max="${max}" step="${stepv}" value="${val}"></label>`;
+}
+const actions = () => `<div class="row"><button class="btn" data-save>${L("Save this plan","Guardar este plan")}</button>${BACK.replace(L("Back","Atrás"),L("Change an answer","Cambiar una respuesta"))}<span class="spacer"></span><button class="btn ghost" data-restart>${L("Next player","Siguiente jugador")}</button></div>`;
+const liAmt = ([cls,amt,txt]) => `<li><span class="amt ${cls}">${amt}</span><p>${txt}</p></li>`;
+
+/* ---------- No-college results ---------- */
+function skipResults(){
+  const c = CAREERS[S.career], who = S.name ? esc(S.name) : "";
+  const mine = careerSeries(c), m40 = mine[22];
+  const fp = friendPlan(), FR = simulate(fp), fs = SCHOOLS[fp.school];
+  const friendName = [`a friend who earns a Business degree at ${fs.short} in 4 years`, `un amigo que saca un título en Administración de Empresas en ${fs.short} en 4 años`];
+  const list = [];
+
+  // 1. Best job
+  let bestId = null, best = -Infinity;
+  for(const [id,j] of Object.entries(CAREERS)){ const t = careerSeries(j)[22]; if(t>best){ best=t; bestId=id } }
+  if(bestId===S.career) list.push(["neutral", L("Top","Mejor"), L(`${c.name} pays the most of these 10 jobs: about ${money(m40)} by age 40.`,`${c.es} es el que más paga de estos 10 trabajos: unos ${money(m40)} a los 40 años.`)]);
+  else { const b = CAREERS[bestId], d = best - m40;
+    list.push(["good", money(d), L(`If you picked ${b.name} instead of ${c.name}, you would earn about <b>${money(d)}</b> more by age 40.`,`Si eligieras ${b.es} en vez de ${c.es}, ganarías unos <b>${money(d)}</b> más a los 40 años.`)]); }
+
+  // 2. Compared with a college friend
+  const dF = m40 - FR.F.v[22], dX = m40 - FR.X.v[22], P = Math.round(FR.P*100);
+  if(dF >= 0) list.push(["good", money(dF), L(`By 40 you'd have <b>${money(dF)}</b> more than ${friendName[0]}, even if they finish and get a job in their field.`,`A los 40 tendrías <b>${money(dF)}</b> más que ${friendName[1]}, aunque termine y consiga trabajo en su carrera.`)]);
+  else list.push(["bad", money(-dF), L(`By 40, ${friendName[0]} would have <b>${money(-dF)}</b> more than you, if they finish and get a job in their field. ${P<60?"Only ":""}${P} out of 100 finish. If they don't, you'd be ${dX>=0?`${money(dX)} ahead`:`${money(-dX)} behind`}.`,
+    `A los 40, ${friendName[1]} tendría <b>${money(-dF)}</b> más que tú, si termina y consigue trabajo en su carrera. ${P<60?"Solo ":""}${P} de cada 100 terminan. Si no termina, tú tendrías ${dX>=0?`${money(dX)} más`:`${money(-dX)} menos`}.`)]);
+
+  // 3. How this job grows
+  const start = careerStart(c);
+  if(c.kind==="service") list.push(["bad", k(c.med), L(`Typical pay for ${c.name.toLowerCase()} is ${money(c.med)} a year, even after many years. Pay grows slowly, and tips go up and down.`,`El sueldo típico de ${c.es.toLowerCase()} es ${money(c.med)} al año, incluso después de muchos años. El sueldo sube despacio, y las propinas cambian mucho.`)]);
+  else if(c.kind==="appr") list.push(["good", "$0", L(`You get paid while you train, with no student loans. Pay goes from about ${money(start)} as an apprentice to ${money(c.med)} when fully trained.`,`Te pagan mientras aprendes, sin préstamos de estudios. El sueldo va de unos ${money(start)} como aprendiz a ${money(c.med)} cuando terminas de entrenarte.`)]);
+  else list.push(["neutral", money(c.cost), L(`Training costs about ${money(c.cost)} and takes months, not years, so you start earning about ${money(start)} right away.`,`El entrenamiento cuesta unos ${money(c.cost)} y dura meses, no años, así que empiezas a ganar unos ${money(start)} enseguida.`)]);
+
+  return `<section class="panel">
+    <div class="qhead"><span class="eyebrow">${L("Results","Resultados")}</span>
+    <h2>${L(`${who?who+"'s":"Your"} plan: ${esc(c.name)}, no college`,`Plan${who?" de "+who:""}: ${esc(c.es)}, sin universidad`)}</h2>
+    <div class="chips"><span class="chip">${L(c.how[0], c.how[1])}</span></div></div>
+    <div class="tiles">
+      <div class="tile ${c.cost?"":"good"}"><span class="cap">${L("Training cost","Costo del entrenamiento")}</span><span class="big">${money(c.cost)}</span><span class="cap">${L("No student loans","Sin préstamos de estudios")}</span></div>
+      <div class="tile"><span class="cap">${L("Pay at 18","Sueldo a los 18")}</span><span class="big">${money(start)}</span><span class="cap">${L("per year","por año")}</span></div>
+      <div class="tile"><span class="cap">${L("Typical pay by 35","Sueldo típico a los 35")}</span><span class="big">${money(c.med)}</span><span class="cap">${L("per year","por año")}</span></div>
+      <div class="tile"><span class="cap">${L("Total earned by 40","Total ganado a los 40")}</span><span class="big">${k(m40)}</span><span class="cap">${L("23 years of work","23 años de trabajo")}</span></div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h3>${L("What would change your result","Lo que cambiaría tu resultado")}</h3>
+    <ul class="takeaways">${list.map(liAmt).join("")}</ul>
+  </section>
+
+  <section class="panel">
+    <div class="qhead"><h3>${L("Your money, age 18 to 40","Tu dinero, de los 18 a los 40 años")}</h3>
+    <p class="muted small">${L(`Total earned, minus training or college costs and loan interest. The college friend's line starts below zero while they pay for ${fs.short}.`,`Total ganado, menos el costo del entrenamiento o de la universidad y los intereses del préstamo. La línea del amigo empieza bajo cero mientras paga ${fs.short}.`)}</p></div>
+    <div class="legend"><span><i class="sw"></i>${L(`You: ${c.name}`,`Tú: ${c.es}`)}</span><span><i class="sw friend"></i>${L(`Friend: Business degree at ${fs.short}`,`Amigo: Administración de Empresas en ${fs.short}`)}</span></div>
+    ${chart({lines:[{cls:"l-friend",v:FR.F.v},{cls:"l-field",v:mine}], grad:FR.gradAge})}
+    ${actions()}
+  </section>`;
+}
+
+/* ---------- College results ---------- */
+function takeaways(R){
+  const s = SCHOOLS[S.school], A = R.A, list = [], deg = degreeOf(S);
+  // 1. Time
+  if(!isAssoc(S)){
+    if(S.years>4){
+      const f = simulate({...S, years:4}), save = A.cost - f.A.cost, more = f.ends.field - R.ends.field, n = S.years-4;
+      list.push(["good", money(save), L(`If you graduated in 4 years instead of ${S.years}, you would pay <b>${money(save)}</b> less for school and start working ${yrs(n)} sooner. That's about <b>${money(more)}</b> more for you by age 40.`,
+        `Si te gradúas en 4 años en vez de ${S.years}, pagarías <b>${money(save)}</b> menos en la escuela y empezarías a trabajar ${yrs(n,false)} antes. Eso es unos <b>${money(more)}</b> más para ti a los 40 años.`)]);
+    } else {
+      const f = simulate({...S, years:6}), extra = f.A.cost - A.cost;
+      list.push(["good", money(extra), L(`Finishing in 4 years saves you <b>${money(extra)}</b> compared with taking 6 years.${s.g4 && s.g4<50 ? ` Only ${s.g4} out of 100 ${esc(s.short)} students do it, so you need a plan from day one.` : ""}`,
+        `Terminar en 4 años te ahorra <b>${money(extra)}</b> comparado con tardar 6 años.${s.g4 && s.g4<50 ? ` Solo ${s.g4} de cada 100 estudiantes de ${esc(s.short)} lo logran, así que necesitas un plan desde el primer día.` : ""}`)]);
+    }
+  }
+  // 2. Residency
+  if(s.type!=="church"){
+    const st = STATE_NAME[s.st], ste = STATE_ES[s.st];
+    if(isOut() && S.gap==="now"){
+      const o = simulate({...S, gap:"gap"}), save = A.cost - o.A.cost;
+      list.push(["good", money(save), L(`If you worked one year in ${st} first and got the in-state price, you would save <b>${money(save)}</b> on school, and earn about ${money(S.gapPay)} that year.`,
+        `Si trabajaras un año en ${ste} primero y obtuvieras el precio de residente, ahorrarías <b>${money(save)}</b> en la escuela y ganarías unos ${money(S.gapPay)} ese año.`)]);
+    } else if(isOut() && S.gap==="gap"){
+      const o = simulate({...S, gap:"now"}), save = o.A.cost - A.cost;
+      list.push(["good", money(save), L(`Working one year first to get the in-state price saves you <b>${money(save)}</b> on school.`,`Trabajar un año primero para obtener el precio de residente te ahorra <b>${money(save)}</b> en la escuela.`)]);
+    } else {
+      const o = simulate({...S, where:"out", gap:"now"}), save = o.A.cost - A.cost;
+      list.push(["good", money(save), L(`Staying in your home state saves you <b>${money(save)}</b> compared with paying the out-of-state price at ${esc(pathName(S))}.`,`Quedarte en tu estado te ahorra <b>${money(save)}</b> comparado con pagar el precio de no residente en ${esc(pathName(S))}.`)]);
+    }
+  }
+  // 3. Major
+  if(!isAssoc(S)){
+    let best=null;
+    for(const id of Object.keys(MAJORS)){
+      const r = simulate({...S, major:id}), be = r.breakEven ?? 99;
+      if(!best || be<best.be || (be===best.be && r.ends.field>best.end)) best={id, be, end:r.ends.field};
+    }
+    const mine = R.breakEven, bm = MAJORS[best.id];
+    if(best.id===S.major) list.push(["neutral", L("Best","Mejor"), L(`${deg.name} pays you back faster than any other major in this game.`,`${deg.es} te devuelve tu dinero más rápido que cualquier otra carrera en este juego.`)]);
+    else if(mine && best.be<99) list.push(["good", `${mine-best.be} ${L("yrs","años")}`, L(`If you picked ${bm.name} instead of ${deg.name}, college would pay you back at age <b>${best.be}</b> instead of ${mine}. That's ${yrs(mine-best.be)} sooner.`,
+      `Si eligieras ${bm.es} en vez de ${deg.es}, la universidad te devolvería tu dinero a los <b>${best.be}</b> años en vez de a los ${mine}. Eso es ${yrs(mine-best.be,false)} antes.`)]);
+    else if(best.be<99) list.push(["bad", L("Never","Nunca"), L(`With ${deg.name}, college does not pay you back by age 40. With ${bm.name}, it would pay you back at age <b>${best.be}</b>.`,
+      `Con ${deg.es}, la universidad no te devuelve tu dinero antes de los 40 años. Con ${bm.es}, te lo devolvería a los <b>${best.be}</b> años.`)]);
+  }
+  // 4. Grades
+  if(["c","d","f"].includes(S.gpa)){
+    const o = Math.round(finishOdds({...S, gpa:"b"})*100), now = Math.round(R.P*100);
+    list.push(["bad", `${now}%`, L(`With your grades, ${now<60?"only ":""}${now} out of 100 students like you finish. With a 3.4 or higher, ${o} out of 100 finish. The ones who don't finish still owe their loans.`,
+      `Con tus notas, ${now<60?"solo ":""}${now} de cada 100 estudiantes como tú terminan. Con 3.4 o más, terminan ${o} de cada 100. Los que no terminan igual deben sus préstamos.`)]);
+  }
+  if(A.borrowed > FED_LIMIT) list.push(["bad", money(A.borrowed), L(`You would borrow ${money(A.borrowed)}. Most students can only get about ${money(FED_LIMIT)} in government student loans. The rest would need parent or bank loans, which usually cost more.`,
+    `Pedirías prestado ${money(A.borrowed)}. La mayoría de los estudiantes solo pueden recibir unos ${money(FED_LIMIT)} en préstamos del gobierno. El resto tendría que venir de préstamos de los padres o del banco, que suelen costar más.`)]);
+  return list.map(liAmt).join("");
+}
+
+function collegeResults(){
+  const R = simulate(S), s = SCHOOLS[S.school], A = R.A, deg = degreeOf(S), who = S.name ? esc(S.name) : "";
+  const where = pathName(S);
+  const y1 = A.rows[0];
+  const nF = Math.round(R.pF*100), nU = Math.round(R.pU*100), nD = 100-nF-nU;
+  const dots = Array.from({length:100},(_,i)=>`<i class="${i<nF?"d-field":i<nF+nU?"d-under":"d-drop"}"></i>`).join("");
+  const payYears = R.breakEven ? R.breakEven - R.gradAge : null;
+
+  return `<section class="panel">
+    <div class="qhead"><span class="eyebrow">${L("Results","Resultados")}</span>
+    <h2>${L(`${who?who+"'s":"Your"} plan: ${esc(deg.name)} at ${esc(where)}`,`Plan${who?" de "+who:""}: ${esc(deg.es)} en ${esc(where)}`)}</h2>
+    <div class="chips"><span class="chip">${L(R.rate[0],R.rate[1])}</span>${S.gap==="gap"?`<span class="chip">${L("Work 1 year first","Trabajar 1 año primero")}</span>`:""}<span class="chip">GPA ${gl(S.gpa)}</span><span class="chip">${L(`${S.years} years in school`,`${S.years} años de estudio`)}</span></div></div>
+
+    <h3>${L("What one year costs","Lo que cuesta un año")}</h3>
+    <div class="yearcost">
+      <div class="ledger">
+        <div><span>${L("Tuition (classes)","Matrícula (clases)")}</span><span>${money(y1.tuition)}</span></div>
+        <div><span>${s.type==="cc"?L("Food and costs, living at home","Comida y gastos, viviendo en casa"):L("Housing and food","Vivienda y comida")}</span><span>${money(y1.living)}</span></div>
+        <div><span>${L("Books and supplies","Libros y materiales")}</span><span>${money(y1.books)}</span></div>
+        <div class="total"><span>${L("Total for year 1","Total del primer año")}</span><span>${money(y1.total)}</span></div>
+      </div>
+      <div class="ledger">
+        ${A.rows.map((r,i)=>`<div><span>${L(`Year ${i+1}`,`Año ${i+1}`)}${r.school!==s.short?` <span class="muted small">(${r.school})</span>`:""}</span><span>${money(r.total)}</span></div>`).join("")}
+        <div class="total"><span>${L(`Total for ${S.years} years`,`Total por ${S.years} años`)}</span><span>${money(A.cost)}</span></div>
+      </div>
+    </div>
+    <p class="muted small">${L("Prices go up about 3% every year. This is the full price with no scholarships or financial aid.","Los precios suben cerca de 3% cada año. Este es el precio completo, sin becas ni ayuda financiera.")}</p>
+
+    <div class="tiles">
+      <div class="tile ${A.borrowed>FED_LIMIT?"bad":""}"><span class="cap">${L("Loan you would need","Préstamo que necesitarías")}</span><span class="big">${money(A.borrowed)}</span><span class="cap">${A.borrowed?L(`Pay ${money(A.pay)} a month for 10 years`,`Pagar ${money(A.pay)} al mes por 10 años`):L("No loan needed","No necesitas préstamo")}</span></div>
+      <div class="tile ${R.breakEven?"good":"bad"}"><span class="cap">${L("College pays you back at","La universidad te devuelve tu dinero a los")}</span><span class="big">${R.breakEven?L(`Age ${R.breakEven}`,`${R.breakEven} años`):L("Not by 40","No antes de los 40")}</span><span class="cap">${R.breakEven?L(`${yrs(payYears)} after you graduate at ${R.gradAge}`,`${yrs(payYears,false)} después de graduarte a los ${R.gradAge}`):L("You'd have more money if you skipped college","Tendrías más dinero sin ir a la universidad")}</span></div>
+      <div class="tile ${R.P<.5?"bad":""}"><span class="cap">${L("Chance you finish","Probabilidad de terminar")}</span><span class="big">${Math.round(R.P*100)} / 100</span><span class="cap">${L("students like you","estudiantes como tú")}</span></div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h3>${L("What would change your result","Lo que cambiaría tu resultado")}</h3>
+    <ul class="takeaways">${takeaways(R)}</ul>
+  </section>
+
+  <section class="panel">
+    <div class="qhead"><h3>${L("When college pays you back","Cuándo la universidad te devuelve tu dinero")}</h3>
+    <p class="muted small">${L("Total money earned minus what you paid for classes, books and loan interest. Your line starts low because you're paying for school. Payback is where it passes the friend who started working at 18.","Dinero total ganado menos lo que pagaste por clases, libros e intereses del préstamo. Tu línea empieza baja porque estás pagando la escuela. Recuperas tu dinero cuando pasa al amigo que empezó a trabajar a los 18.")}</p></div>
+    <div class="legend"><span><i class="sw"></i>${L("You, with your degree","Tú, con tu título")}</span><span><i class="sw skip"></i>${L("Friend who skipped college","Amigo que no fue a la universidad")}</span></div>
+    ${chart({lines:[{cls:"l-skip",v:R.sk},{cls:"l-field",v:R.F.v}], grad:R.gradAge, be:R.breakEven ? {age:R.breakEven, v:R.F.v[R.breakEven-18]} : null})}
+  </section>
+
+  <section class="panel">
+    <div class="qhead"><h3>${L("Out of 100 students on this same plan","De cada 100 estudiantes con este mismo plan")}</h3></div>
+    <div class="crowd">
+      <div class="dots" role="img" aria-label="${nF} get a job in their field, ${nU} graduate and wait tables, ${nD} leave without a degree">${dots}</div>
+      <div class="outs">
+        <div class="out"><span class="sw2 d-field"></span><span>${L(`<b>${nF}</b> graduate and get a job in their field`,`<b>${nF}</b> se gradúan y consiguen trabajo en su carrera`)}</span></div>
+        <div class="out"><span class="sw2 d-under"></span><span>${L(`<b>${nU}</b> graduate but end up waiting tables or in a job that doesn't need a degree for years`,`<b>${nU}</b> se gradúan pero terminan de meseros o en un trabajo que no necesita título por años`)}</span></div>
+        <div class="out"><span class="sw2 d-drop"></span><span>${L(`<b>${nD}</b> leave without a degree and still owe their loans`,`<b>${nD}</b> dejan la escuela sin título y todavía deben sus préstamos`)}</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h3>${L("What if…","¿Y si…?")}</h3>
+    <div class="knobs">
+      ${knob("help",L("Family help per year","Ayuda de la familia por año"),0,20000,500,S.help,money)}
+      ${knob("partTime",L("Part-time job pay per year","Sueldo de trabajo de medio tiempo por año"),0,15000,500,S.partTime,money)}
+      ${knob("rate",L("Loan interest rate","Tasa de interés del préstamo"),3,10,0.01,S.rate,v=>(+v).toFixed(2)+"%")}
+      ${S.gap==="gap"?knob("gapPay",L("Pay during your work year","Sueldo durante tu año de trabajo"),15000,45000,1000,S.gapPay,money):""}
+    </div>
+    ${actions()}
+  </section>`;
+}
+
+/* ================= CHART ================= */
+function chart({lines, grad, be}){
+  const W=640,H=300,L0=58,Rr=16,T=16,B=34, all=lines.flatMap(l=>l.v);
+  let lo=Math.min(0,...all), hi=Math.max(...all);
+  const raw=(hi-lo)/4, mag=Math.pow(10,Math.floor(Math.log10(raw))), st=[1,2,2.5,5,10].map(x=>x*mag).find(x=>x>=raw);
+  lo=Math.floor(lo/st)*st; hi=Math.ceil(hi/st)*st;
+  const X=a=>L0+(a-18)/22*(W-L0-Rr), Y=v=>T+(hi-v)/(hi-lo)*(H-T-B);
+  let g="";
+  for(let v=lo; v<=hi+1; v+=st) g+=`<line class="grid" x1="${L0}" x2="${W-Rr}" y1="${Y(v)}" y2="${Y(v)}"/><text x="${L0-8}" y="${Y(v)+4}" text-anchor="end">${k(v)}</text>`;
+  for(let a=18;a<=40;a+=2) g+=`<text x="${X(a)}" y="${H-12}" text-anchor="middle">${a}</text>`;
+  if(lo<0) g+=`<line class="zero" x1="${L0}" x2="${W-Rr}" y1="${Y(0)}" y2="${Y(0)}"/>`;
+  if(grad) g+=`<line class="gradline" x1="${X(grad)}" x2="${X(grad)}" y1="${T}" y2="${H-B}"/><text x="${X(grad)+4}" y="${T+10}">${L("graduate","graduación")}</text>`;
+  for(const l of lines) g+=`<path class="${l.cls}" d="${l.v.map((v,i)=>(i?"L":"M")+X(18+i).toFixed(1)+" "+Y(v).toFixed(1)).join(" ")}"/>`;
+  if(be){ const right = be.age > 33; g+=`<circle class="be" cx="${X(be.age)}" cy="${Y(be.v)}" r="7"/><text class="belbl" x="${X(be.age)+(right?-12:12)}" y="${Y(be.v)-12}" text-anchor="${right?"end":"start"}">${L("paid back","recuperado")} (${be.age})</text>`; }
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Line chart of total money from age 18 to 40">${g}</svg>`;
+}
+
+/* ================= COMPARE ================= */
+function renderCompare(){
+  const box=$("#compare");
+  if(!saved.length){ box.hidden=true; return }
+  box.hidden=false;
+  const best = saved.reduce((b,p,i)=> (p.m40??0)>(saved[b].m40??0)?i:b, 0);
+  box.innerHTML = `<div class="row"><h3>${L("Saved plans","Planes guardados")}</h3><span class="spacer"></span><button class="btn ghost" data-clear>${L("Clear","Borrar")}</button></div>
+  <p class="muted small">${L("Compare everyone's plans. The star marks the most money by age 40, if everything goes to plan.","Compara los planes de todos. La estrella marca el que tiene más dinero a los 40 años, si todo sale según el plan.")}</p>
+  <div class="tablewrap"><table><thead><tr>
+    <th>${L("Player","Jugador")}</th><th>${L("Plan","Plan")}</th><th>${L("Cost per year","Costo por año")}</th><th>${L("Loan","Préstamo")}</th><th>${L("Pays back at","Se recupera a los")}</th><th>${L("Chance to finish","Probabilidad de terminar")}</th><th>${L("Money by 40","Dinero a los 40")}</th></tr></thead><tbody>
+  ${saved.map((p,i)=>`<tr class="${i===best&&saved.length>1?"best":""}"><td>${esc(p.name||L("Player","Jugador"))}${i===best&&saved.length>1?" ★":""}</td><td>${esc(L(p.plan[0],p.plan[1]))}<br><span class="muted">${esc(L(p.detail[0],p.detail[1]))}</span></td><td class="n">${money(p.perYear||0)}</td><td class="n">${money(p.loan)}</td><td class="n">${p.skip?"—":p.be?p.be:L("Not by 40","No antes de 40")}</td><td class="n">${p.odds}</td><td class="n">${p.m40!=null?k(p.m40):"—"}</td></tr>`).join("")}
+  </tbody></table></div>`;
+}
+
+/* ================= FOOTER ================= */
+
+const A = (u,t) => `<a href="${u}" target="_blank" rel="noopener">${t}</a>`;
+const FOOT_ES = () => `<b>De dónde vienen los números</b>
+<ul>
+<li>Todos los precios son el precio completo, sin becas, subvenciones ni ayuda financiera.</li>
+<li>Matrícula: ${A("https://www.usu.edu/financial-support/coa","Utah State")} y el sistema de educación superior de Utah, 2025–26; University of Utah 2026–27; ${A("https://ushe.edu/wp-content/uploads/pdf/agendas/2026/032726/UVU_Tuition_Fees.pdf","UVU 2025–26")}; ${A("https://news.byu.edu/announcements/byu-tuition-to-increase-3-for-2025-26-academic-year","BYU 2025–26")}; ${A("https://www.byui.edu/financial-aid/tuition-expenses-2026-2027","BYU–Idaho 2026–27")}; ${A("https://uconn.edu/annual-fact-sheet","UConn 2025–26")}; ${A("https://ctstate.edu/admissions-registration/investing-in-a-ct-state-education","CT State Community College")}; ${A("https://www.northcarolina.edu/wp-content/uploads/reports-and-documents/finance-documents/undegraduate-tuition-and-fees-fy2025-26.pdf","UNC–Chapel Hill 2025–26")} (el precio para no residentes sube unos $4,300 en 2026–27); ${A("https://catalog.cpcc.edu/enrollment/tuition-and-fees","Central Piedmont")}.</li>
+<li>Graduación: informes de las escuelas y datos federales; UNC 85% en 4 años y 91% en 6; ${A("https://nces.ed.gov/collegenavigator/?id=198260","Central Piedmont: 31% se gradúa y 26% se transfiere")}; ${A("https://ctstate.edu/retention-and-outcomes","tasas de CT State")}; ${A("https://www.ct.edu/transfer/uconn","garantía de transferencia a UConn")}; ${A("https://www.cpcc.edu/academics/transfer/unc-chapel-hill-c-step","C-STEP de UNC")} (79% de los estudiantes de C-STEP se gradúan); ${A("https://www.cfnc.org/plan-your-future/plan-for-college/transfer-student-planner/transfer-student-guarantees/","garantía de transferencia de Carolina del Norte")}.</li>
+<li>Sueldos con título: medianas por carrera del ${A("https://www.newyorkfed.org/research/college-labor-market","Banco de la Reserva Federal de Nueva York")} (datos de 2024; algunas carreras redondeadas), que también encontró que 42% de los recién graduados trabaja en empleos que no necesitan título.</li>
+<li>Trabajos sin universidad: ${A("https://www.bls.gov/ooh/","Oficina de Estadísticas Laborales (BLS)")}, sueldos de mayo de 2025. El sueldo a los 18 es el del 10% que menos gana (los aprendices empiezan con cerca de la mitad del sueldo completo); el sueldo típico a los 35 es la mediana. El sueldo de restaurante incluye propinas. Los costos de entrenamiento para camionero, soldador y HVAC son estimaciones del juego.</li>
+<li>Préstamos: ${A("https://www.collegehelpguide.com/blog/federal-loan-rates-confirmed-2026-27/","tasa federal de 6.52% para 2026–27")}. Los intereses crecen mientras estudias y luego pagas en 10 años.</li>
+<li>Estimaciones del juego: cuánto cambian las notas la probabilidad de terminar y de conseguir trabajo en tu carrera; los graduados que trabajan de meseros ganan sueldo de mesero por 5 años y luego 80% del sueldo de su carrera; vivienda en Utah State, UVU, BYU y los community colleges; no ir a la universidad paga ${money(SKIP0)} a los 18 y sube a ${money(SKIP35)} a los 35; los precios suben 3% al año.</li>
+</ul>`;
+function renderFoot(){ $("#foot").innerHTML = LANG==="es" ? FOOT_ES() : `<b>Where the numbers come from</b>
+<ul>
+<li>Every price is the full price, with no scholarships, grants or financial aid.</li>
+<li>Tuition: <a href="https://www.usu.edu/financial-support/coa" target="_blank" rel="noopener">Utah State</a> and the Utah System of Higher Education, 2025–26; University of Utah 2026–27; <a href="https://ushe.edu/wp-content/uploads/pdf/agendas/2026/032726/UVU_Tuition_Fees.pdf" target="_blank" rel="noopener">UVU 2025–26</a>; <a href="https://news.byu.edu/announcements/byu-tuition-to-increase-3-for-2025-26-academic-year" target="_blank" rel="noopener">BYU 2025–26</a>; <a href="https://www.byui.edu/financial-aid/tuition-expenses-2026-2027" target="_blank" rel="noopener">BYU–Idaho 2026–27</a>; <a href="https://uconn.edu/annual-fact-sheet" target="_blank" rel="noopener">UConn 2025–26</a>; <a href="https://ctstate.edu/admissions-registration/investing-in-a-ct-state-education" target="_blank" rel="noopener">CT State Community College</a>; <a href="https://www.northcarolina.edu/wp-content/uploads/reports-and-documents/finance-documents/undegraduate-tuition-and-fees-fy2025-26.pdf" target="_blank" rel="noopener">UNC–Chapel Hill 2025–26</a> (out-of-state rises about $4,300 in 2026–27); <a href="https://catalog.cpcc.edu/enrollment/tuition-and-fees" target="_blank" rel="noopener">Central Piedmont</a>.</li>
+<li>Graduation: school reports and federal data; UNC 85% in 4 years and 91% in 6; <a href="https://nces.ed.gov/collegenavigator/?id=198260" target="_blank" rel="noopener">Central Piedmont 31% graduate and 26% transfer</a>; <a href="https://ctstate.edu/retention-and-outcomes" target="_blank" rel="noopener">CT State graduation and transfer rates</a>; <a href="https://www.ct.edu/transfer/uconn" target="_blank" rel="noopener">UConn transfer guarantee</a>; <a href="https://www.cpcc.edu/academics/transfer/unc-chapel-hill-c-step" target="_blank" rel="noopener">UNC C-STEP</a> (79% of C-STEP students graduate); <a href="https://www.cfnc.org/plan-your-future/plan-for-college/transfer-student-planner/transfer-student-guarantees/" target="_blank" rel="noopener">NC transfer guarantee</a>.</li>
+<li>College pay: <a href="https://www.newyorkfed.org/research/college-labor-market" target="_blank" rel="noopener">New York Fed</a> medians by major (2024 data; some majors rounded) and its finding that 42% of recent grads work jobs that don't need a degree.</li>
+<li>Jobs without college: <a href="https://www.bls.gov/ooh/" target="_blank" rel="noopener">BLS Occupational Outlook Handbook</a>, May 2025 pay. Pay at 18 is the lowest-10% pay (apprentices start at about half of full pay); typical pay by 35 is the median. Restaurant pay includes tips. Training costs for truck driving, welding and HVAC are game estimates.</li>
+<li>Loans: <a href="https://www.collegehelpguide.com/blog/federal-loan-rates-confirmed-2026-27/" target="_blank" rel="noopener">6.52% federal rate for 2026–27</a>. Interest builds while you're in school, then you repay over 10 years.</li>
+<li>Game estimates: how grades change the chance of finishing and of a job in your field; grads waiting tables earn waiter pay for 5 years, then 80% of their field's pay; housing at Utah State, UVU, BYU and the community colleges; skipping college pays ${money(SKIP0)} at 18 rising to ${money(SKIP35)} by 35; prices rise 3% a year.</li>
+</ul>`; }
+
+function renderHeader(){
+  document.documentElement.lang = LANG;
+  $("#top").innerHTML = `<svg class="ridge" viewBox="0 0 720 46" preserveAspectRatio="none" aria-hidden="true">
+      <circle class="sun" cx="610" cy="16" r="9"/>
+      <path d="M0 42 L70 26 L110 34 L180 10 L230 28 L290 18 L350 36 L420 14 L470 24 L530 6 L590 30 L650 22 L720 38"/>
+    </svg>
+    <div class="row"><span class="eyebrow">${L("A college money game","Un juego sobre el costo de la universidad")}</span><span class="spacer"></span>
+      <div class="toggle" role="group" aria-label="Language / Idioma"><button data-lang="en" aria-pressed="${LANG==="en"}">English</button><button data-lang="es" aria-pressed="${LANG==="es"}">Español</button></div></div>
+    <h1>${L("The Tuition Trail","El camino de la matrícula")}</h1>
+    <p class="muted">${L("Pick a path. See what college costs each year and how long it takes to pay you back.","Elige un camino. Mira cuánto cuesta la universidad cada año y cuánto tarda en devolverte lo que pagaste.")}</p>`;
+}
+
+/* ================= MAIN ================= */
+function render(focusTop){
+  renderHeader(); renderFoot();
+  if(!steps().includes(step)) step="start";
+  renderTrail();
+  $("#app").innerHTML = VIEWS[step]();
+  renderCompare();
+  const n=$("#pname"); if(n) n.addEventListener("input", e=>{ S.name=e.target.value });
+  if(focusTop) $("#trail").scrollIntoView({block:"start", behavior:"smooth"});
+}
+function go(dir){ const l=steps(), i=l.indexOf(step); step = l[clamp(i+dir,0,l.length-1)]; render(true) }
+const advanceSoon = () => setTimeout(()=>go(1), 220);
+
+document.addEventListener("click", e=>{
+  const t = e.target.closest("button"); if(!t || t.disabled) return;
+  const d = t.dataset;
+  if(d.lang){ LANG = d.lang==="es" ? "es" : "en"; try{ localStorage.setItem("tt-lang", LANG) }catch(err){} const y=window.scrollY; render(); window.scrollTo(0,y); return }
+  if(d.go){ step=d.go; render(true); return }
+  if(d.back!==undefined){ go(-1); return }
+  if(d.next!==undefined){ go(1); return }
+  if(t.id==="go1"){ go(1); return }
+  if(d.home){ if(S.home!==d.home){ S.home=d.home; S.where=null; S.school=null; S.gap=null } render(); return }
+  if(d.where){ if(S.where!==d.where){ S.where=d.where; S.school=null; S.gap=null } render(); advanceSoon(); return }
+  if(d.career){ S.career=d.career; render(); advanceSoon(); return }
+  if(d.school){ if(S.school!==d.school){ S.school=d.school; S.years=null } render(); return }
+  if(d.member){ S.member = d.member==="1"; render(); return }
+  if(d.plan){ if(S.plan!==d.plan){ S.plan=d.plan; S.years=null } render(); return }
+  if(d.gap){ S.gap=d.gap; render(); advanceSoon(); return }
+  if(d.gpa){ S.gpa=d.gpa; render(); return }
+  if(d.years){ S.years=+d.years; render(); return }
+  if(d.major){ S.major=d.major; render(); advanceSoon(); return }
+  if(d.example!==undefined){ S={...fresh(), name:"Example", home:"OTHER", where:"out", school:"uconn", gap:"now", gpa:"c", years:6, major:"psych"}; step="results"; render(true); return }
+  if(d.restart!==undefined){ S=fresh(); step="start"; render(true); return }
+  if(d.save!==undefined){
+    let row;
+    if(S.where==="skip"){ const c=CAREERS[S.career]; row={name:S.name, plan:[c.name, c.es], detail:["No college","Sin universidad"], perYear:0, loan:0, be:null, odds:"—", skip:true, m40:careerSeries(c)[22]} }
+    else {
+      const R=simulate(S), deg=degreeOf(S);
+      row={name:S.name, plan:[`${deg.name} · ${pathName(S)}`, `${deg.es} · ${pathName(S)}`],
+        detail:[`${R.rate[0]}, GPA ${GPA[S.gpa].label}, ${S.years} yrs`, `${R.rate[1]}, GPA ${GPA[S.gpa].les||GPA[S.gpa].label}, ${S.years} años`],
+        perYear:R.A.rows[0].total, loan:R.A.borrowed, be:R.breakEven, odds:Math.round(R.P*100)+"%", m40:R.F.v[22]};
+    }
+    saved.push(row); if(saved.length>10) saved.shift();
+    try{ localStorage.setItem("tt-saved5", JSON.stringify(saved)) }catch(err){}
+    renderCompare(); t.innerHTML=L("Saved","Guardado"); setTimeout(()=>{ t.innerHTML=L("Save this plan","Guardar este plan") },1400); return
+  }
+  if(d.clear!==undefined){ saved=[]; try{ localStorage.removeItem("tt-saved5") }catch(err){} renderCompare(); return }
+});
+document.addEventListener("input", e=>{
+  const id=e.target.dataset.knob; if(!id) return;
+  S[id]=+e.target.value;
+  const o=document.getElementById("o-"+id); if(o) o.textContent = id==="rate" ? (+e.target.value).toFixed(2)+"%" : money(+e.target.value);
+});
+document.addEventListener("change", e=>{
+  const id=e.target.dataset.knob; if(!id) return;
+  const y=window.scrollY; render(); window.scrollTo(0,y);
+  const el=document.getElementById("k-"+id); if(el) el.focus({preventScroll:true});
+});
+render();
+</script>
+
+</body>
+</html>
